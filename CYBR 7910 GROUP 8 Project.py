@@ -24,54 +24,115 @@ LOGS_LOCATION = APP_LOCATION
 csv_datasets_loaded = [
     "Dataset 3__Malware_Threat_Alerts.csv",
     "Dataset 4__Network_Traffic_Summary.csv",
-    "Dateset 2__User_Authentication_Logs.csv", 
+    "Dateset 2__User_Authentication_Logs.csv",
+
     "Dataset 5__Security_Incident_Reports.csv"
 ]
 
-csv_datasets = {
-    file: pd.read_csv(os.path.join(LOGS_LOCATION, file), encoding='utf-8')
-    for file in csv_datasets_loaded
+tab_style = {
+    'backgroundColor': '#252525',
+    'color': 'white',
+    'border': 'none',
+    'padding': '10px',
+    'fontWeight': 'normal',
 }
 
-app = Dash(__name__)
+selected_tab_style = {
+    'backgroundColor': '#444444',
+    'color': 'white',
+    'border': 'none',
+    'padding': '10px',
+    'fontWeight': 'bold',
+}
+
+tabs_info = [
+    {'label': 'User Behavior & Access Monitoring', 'value': 'User Login Data'},
+    {'label': 'Threat Detection & Malware Insights', 'value': 'Malware and Threat Data'},
+    {'label': 'Network and Incident Response', 'value': 'Network and Response Data'},
+]
+
+tabs = dcc.Tabs(
+    id='tabs',
+    value='User Login Data',
+    children=[
+        dcc.Tab(
+            label=tab['label'],
+            value=tab['value'],
+            style=tab_style,
+            selected_style=selected_tab_style,
+        ) for tab in tabs_info
+    ],
+    style={
+        'backgroundColor': '#252525',
+        'borderBottom': '1px solid #444',
+        'color': 'white',
+    }
+)
+
+csv_datasets = {}
+for file in csv_datasets_loaded:
+    try:
+        df = pd.read_csv(os.path.join(LOGS_LOCATION, file), encoding='utf-8')
+        csv_datasets[file] = df
+
+    except FileNotFoundError:
+        print(f"[ERROR] File not found: {file}")
+
+    except pd.errors.ParserError as e:
+        print(f"[ERROR] Parsing CSV failed for {file}: {e}")
+
+app = Dash(__name__, suppress_callback_exceptions=True)
 
 app.layout = html.Div([
-    html.H2('📊 Security Dashboard'),
 
-    dcc.Tabs(id="tabs", value='tab-user-monitoring', children=[
-        dcc.Tab(label='User Behavior & Access Monitoring', value='tab-user-monitoring'),
-        dcc.Tab(label='Threat Detection & Malware Insights', value='tab-threat-malware'),
-        dcc.Tab(label='Network and Incident Response', value='tab-network-response'),
-    ]),
+    html.H2('Data Science Dashboard for EverythingOrganic', style={
+        'color': 'white',
+        'backgroundColor': '#252525',
+        'margin': '0',
+        'padding': '0',
+    }),
 
-    html.Div(id='tabs-content')
-])
+    tabs,  # your tabs component
+
+    html.Div(id='tabs-content', style={'color': 'white', 'padding': '45px'})
+],
+style={
+    'backgroundColor': "#252525",
+    'minHeight': '100vh',
+    'margin': '0',
+    'padding': '0',
+    'fontFamily': 'Arial, sans-serif'
+})
 
 @app.callback(
     Output('tabs-content', 'children'),
     Input('tabs', 'value')
 )
 def render_tab_content(tab):
-    if tab == 'tab-user-monitoring':
+    if tab == 'User Login Data':
         return html.Div([
             html.H3('User Behavior & Access Monitoring'),
 
-            dcc.RadioItems(
+            dcc.Dropdown(
                 id='user-behavior-subfunc',
                 options=[
                     {'label': 'Failed Login Heatmap', 'value': 'failed_heatmap'},
-                    {'label': 'City/State/Country Login Trends', 'value': 'location_trends'},
+                    {'label': 'City and Country Login Trends', 'value': 'location_trends'},
                     {'label': 'Business Hours vs Non-business Hours', 'value': 'business_hours'},
-                    {'label': 'User Agent/Browser Distribution', 'value': 'user_agent_dist'}
-                ],
-                value='failed_heatmap',
-                inline=True
-            ),
+                    {'label': 'Browser Distribution', 'value': 'user_agent_dist'}
+    ],
+    value='failed_heatmap',
+    clearable=False,
+    searchable=False,
+    style={'width': '300px', 'color': 'white', 'backgroundColor' : '#FFFFF', 'padding': '5px', 'fontWeight': 'bold', 'width': '400px', 'zIndex': 9999, 'position': 'relative'
+},
+    
+),
 
             dcc.Graph(id='user-behavior-graph')
         ])
 
-    elif tab == 'tab-threat-malware':
+    elif tab == 'Malware and Threat Data':
         return html.Div([
             html.H3('Threat Detection & Malware Insights'),
             html.P("Content coming soon...")
@@ -87,12 +148,13 @@ def render_tab_content(tab):
     Output('user-behavior-graph', 'figure'),
     Input('user-behavior-subfunc', 'value')
 )
-def update_user_behavior_graph(subfunc):
-    if subfunc == 'failed_heatmap':
+def update_user_behavior_graph(user_login_location):
+    if user_login_location == 'failed_heatmap':
         df = csv_datasets["Dateset 2__User_Authentication_Logs.csv"]
 
         # Filter failed and successful logins with geo_location
         denied = df[df['login_status'].str.lower() == 'failure'].dropna(subset=['geo_location'])
+
         approved = df[df['login_status'].str.lower() == 'success'].dropna(subset=['geo_location'])
 
         def map_lat_lon(location):
@@ -100,6 +162,7 @@ def update_user_behavior_graph(subfunc):
 
         # Group counts per location
         fail_counts = denied.groupby('geo_location').size().rename('fail_count')
+
         success_counts = approved.groupby('geo_location').size().rename('success_count')
 
         # Combine counts on geo_location
@@ -114,6 +177,7 @@ def update_user_behavior_graph(subfunc):
         # Marker sizes (scaled)
         max_marker_size = 40
         Heatmap['fail_size'] = Heatmap['fail_count'] / Heatmap['fail_count'].max() * max_marker_size
+
         Heatmap['success_size'] = Heatmap['success_count'] / Heatmap['success_count'].max() * max_marker_size
 
         fig = go.Figure()
@@ -122,7 +186,7 @@ def update_user_behavior_graph(subfunc):
             success_bigger = row['success_count'] >= row['fail_count']
 
             if success_bigger:
-                # Success circle faded behind
+            # The goal of this section is to make a heatmap where both icons are visible.
                 fig.add_trace(go.Scattergeo(
                     lon=[row['lon']],
                     lat=[row['lat']],
@@ -139,7 +203,7 @@ def update_user_behavior_graph(subfunc):
                     hoverinfo='skip'
                 ))
                 if row['fail_count'] > 0:
-                    # Fail circle solid front with hover info
+                    
                     fig.add_trace(go.Scattergeo(
                         lon=[row['lon']],
                         lat=[row['lat']],
@@ -160,7 +224,6 @@ def update_user_behavior_graph(subfunc):
                         )
                     ))
             else:
-                # Fail circle faded behind
                 fig.add_trace(go.Scattergeo(
                     lon=[row['lon']],
                     lat=[row['lat']],
@@ -177,7 +240,6 @@ def update_user_behavior_graph(subfunc):
                     hoverinfo='skip'
                 ))
                 if row['success_count'] > 0:
-                    # Success circle solid front with hover info
                     fig.add_trace(go.Scattergeo(
                         lon=[row['lon']],
                         lat=[row['lat']],
@@ -199,7 +261,12 @@ def update_user_behavior_graph(subfunc):
                     ))
 
         fig.update_layout(
-            title='Login Attempts by Location',
+
+           title={
+        'text': 'Login Attempts by Location',
+        'font': {'color': "#ffffff", 'size': 30}  
+    },
+
             geo=dict(
                 scope='world',
                 projection_type='natural earth',
@@ -208,6 +275,8 @@ def update_user_behavior_graph(subfunc):
                 showcountries=True,
                 countrycolor='rgb(204, 204, 204)',
             ),
+            paper_bgcolor='#252525',
+            plot_bgcolor='#252525',
             legend=dict(
                 title='Login Status',
                 x=0.8,
@@ -218,8 +287,7 @@ def update_user_behavior_graph(subfunc):
 
         return fig
 
-    # Your other subfuncs here (unchanged)
-    elif subfunc == 'location_trends':
+    elif user_login_location == 'location_trends':
         fig = go.Figure(go.Bar(
             x=['New York', 'California', 'Texas'],
             y=[100, 80, 60],
@@ -228,7 +296,7 @@ def update_user_behavior_graph(subfunc):
         fig.update_layout(title='Login Trends by Location')
         return fig
 
-    elif subfunc == 'business_hours':
+    elif user_login_location == 'business_hours':
         fig = go.Figure(go.Pie(
             labels=['Business Hours', 'Non-Business Hours'],
             values=[75, 25]
@@ -236,10 +304,10 @@ def update_user_behavior_graph(subfunc):
         fig.update_layout(title='Access During Business vs Non-Business Hours')
         return fig
 
-    elif subfunc == 'user_agent_dist':
+    elif user_login_location == 'user_agent_dist':
         fig = go.Figure(go.Bar(
             x=['Chrome', 'Firefox', 'Edge', 'Safari'],
-            y=[120, 40, 30, 10],
+            y=[58, 92, 14, 24, 19],
             marker_color='lightgreen'
         ))
         fig.update_layout(title='User Agent / Browser Distribution')
