@@ -129,11 +129,16 @@ def render_tab_content(tab):
         return html.Div([
             html.H3('User Behavior & Access Monitoring'),
 
-            dcc.Tabs(id='user-subtab', value='heatmap', children=[
-                dcc.Tab(label='Failed Login Heatmap', value='heatmap'),
-                dcc.Tab(label='Business Hours vs Non-Business Hours', value='business_hours'),
-                dcc.Tab(label='Browser Distribution', value='user_agent')
-            ]),
+            dcc.Tabs(
+                id='user-subtab', 
+                value='heatmap', 
+                children=[
+                    dcc.Tab(label='Failed Login Heatmap', value='heatmap'),
+                    dcc.Tab(label='Business Hours vs Non-Business Hours', value='business_hours'),
+                    dcc.Tab(label='Browser Distribution', value='user_agent')
+                ],
+                style={'backgroundColor': '#252525', 'color': 'grey'}  # This style now correctly applies to the Tabs
+            ),
 
             html.Div(id='user-subtab-content')
         ])
@@ -145,7 +150,7 @@ def render_tab_content(tab):
             dcc.Tabs(id='Malware Sub Function', value='threats', children=[
             dcc.Tab(label='Threat Types', value='threats'),
             dcc.Tab(label='Remediation Status', value='remediation')
-        ], style={'backgroundColor': '#252525', 'color': 'white'}),
+        ], style={'backgroundColor': '#252525', 'color': 'grey'}),
 
         html.Div(id='Malware Content')
 
