@@ -5,6 +5,8 @@ import plotly.graph_objects as go
 
 import pytz
 
+import plotly.express as px
+
 location_cache = {
     "Toronto, Canada": (43.65107, -79.347015),
     "Cape Town, South Africa": (-33.9249, 18.4241),
@@ -133,7 +135,7 @@ def render_tab_content(tab):
                     {'label': 'Failed Login Heatmap', 'value': 'heatmap success and fail'},
                     {'label': 'City and Country Login Trends', 'value': 'location_trends'},
                     {'label': 'Business Hours vs Non-business Hours', 'value': 'business_hours'},
-                    {'label': 'Browser Distribution', 'value': 'user_agent_dist'}
+                    {'label': 'Browser Distribution', 'value': 'User Agent'}
     ],
     value='heatmap success and fail',
     clearable=False,
@@ -321,7 +323,7 @@ def update_user_behavior_graph(user_login_location):
 
         grouped = df.groupby(['geo_location', 'business_hours']).size().reset_index(name='count')
 
-        import plotly.express as px
+
         fig = px.bar(
             grouped,
             x='geo_location',
@@ -340,17 +342,32 @@ def update_user_behavior_graph(user_login_location):
         )
         return fig
 
-    elif user_login_location == 'user_agent_dist':
-        fig = go.Figure(go.Bar(
-            x=['Chrome', 'Firefox', 'Edge', 'Safari'],
-            y=[58, 92, 14, 24],
-            marker_color='lightgreen'
-        ))
-        fig.update_layout(title='User Agent / Browser Distribution')
+    elif user_login_location == 'User Agent':
+        df = csv_datasets["Dateset 2__User_Authentication_Logs.csv"].copy()
+
+        browser_counts = df['user_agent'].value_counts().reset_index()
+        browser_counts.columns = ['Browser', 'Count']
+
+        fig = px.pie(
+            browser_counts,
+            names='Browser',
+            values='Count',
+            title='User Agent / Browser Distribution',
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+
+        fig.update_layout(
+            paper_bgcolor='#252525',
+            plot_bgcolor='#252525',
+            font_color='white',
+            legend_title_text='Browser'
+        )
+
         return fig
 
     else:
         return go.Figure()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
