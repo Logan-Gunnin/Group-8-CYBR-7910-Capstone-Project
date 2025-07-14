@@ -133,7 +133,6 @@ def render_tab_content(tab):
                 id='User behavior and access',
                 options=[
                     {'label': 'Failed Login Heatmap', 'value': 'heatmap success and fail'},
-                    {'label': 'City and Country Login Trends', 'value': 'location_trends'},
                     {'label': 'Business Hours vs Non-business Hours', 'value': 'business_hours'},
                     {'label': 'Browser Distribution', 'value': 'User Agent'}
     ],
@@ -289,15 +288,6 @@ def update_user_behavior_graph(user_login_location):
         )
         return fig
 
-    elif user_login_location == 'location_trends':
-        fig = go.Figure(go.Bar(
-            x=['New York', 'California', 'Texas'],
-            y=[100, 80, 60],
-            marker_color='mediumturquoise'
-        ))
-        fig.update_layout(title='Login Trends by Location')
-        return fig
-
     elif user_login_location == 'business_hours':
         df = csv_datasets["Dateset 2__User_Authentication_Logs.csv"].copy()
 
@@ -322,7 +312,6 @@ def update_user_behavior_graph(user_login_location):
         df['business_hours'] = df['local_time'].apply(classify_business_hours)
 
         grouped = df.groupby(['geo_location', 'business_hours']).size().reset_index(name='count')
-
 
         fig = px.bar(
             grouped,
@@ -360,7 +349,6 @@ def update_user_behavior_graph(user_login_location):
             paper_bgcolor='#252525',
             plot_bgcolor='#252525',
             font_color='white',
-            legend_title_text='Browser'
         )
 
         return fig
