@@ -129,28 +129,27 @@ def render_tab_content(tab):
         return html.Div([
             html.H3('User Behavior & Access Monitoring'),
 
-            dcc.Dropdown(
-                id='User behavior and access',
-                options=[
-                    {'label': 'Failed Login Heatmap', 'value': 'heatmap success and fail'},
-                    {'label': 'Business Hours vs Non-business Hours', 'value': 'business_hours'},
-                    {'label': 'Browser Distribution', 'value': 'User Agent'}
-    ],
-    value='heatmap success and fail',
-    clearable=False,
-    searchable=False,
-    style={'width': '300px', 'color': 'white', 'backgroundColor' : '#FFFFF', 'padding': '5px', 'fontWeight': 'bold', 'width': '400px', 'zIndex': 9999, 'position': 'relative'
-},
-    
-),
+            dcc.Tabs(id='user-subtab', value='heatmap', children=[
+                dcc.Tab(label='Failed Login Heatmap', value='heatmap'),
+                dcc.Tab(label='Business Hours vs Non-Business Hours', value='business_hours'),
+                dcc.Tab(label='Browser Distribution', value='user_agent')
+            ]),
 
-            dcc.Graph(id='graph of user behavior and access monitoring')
+            html.Div(id='user-subtab-content')
         ])
 
     elif tab == 'Malware and Threat Data':
         return html.Div([
             html.H3('Threat Detection & Malware Insights'),
-            html.P("Cneed to finish this one")
+            
+            dcc.Tabs(id='Malware Sub Function', value='threats', children=[
+            dcc.Tab(label='Threat Types', value='threats'),
+            dcc.Tab(label='Remediation Status', value='remediation')
+        ], style={'backgroundColor': '#252525', 'color': 'white'}),
+
+        html.Div(id='Malware Content')
+
+
         ])
 
     else:
@@ -160,13 +159,13 @@ def render_tab_content(tab):
         ])
 
 @app.callback(
-    Output('graph of user behavior and access monitoring', 'figure'),
-    Input('User behavior and access', 'value')
+    Output('user-subtab-content', 'children'),
+    Input('user-subtab', 'value')
 )
 def update_user_behavior_graph(user_login_location):
-    if user_login_location == 'heatmap success and fail':
+    if user_login_location == 'heatmap':
+        # heatmap success and fail
         df = csv_datasets["Dateset 2__User_Authentication_Logs.csv"]
-
         denied = df[df['login_status'].str.lower() == 'failure'].dropna(subset=['geo_location'])
         approved = df[df['login_status'].str.lower() == 'success'].dropna(subset=['geo_location'])
 
@@ -175,11 +174,8 @@ def update_user_behavior_graph(user_login_location):
 
         fail_counts = denied.groupby('geo_location').size().rename('fail_count')
         success_counts = approved.groupby('geo_location').size().rename('success_count')
-
         Heatmap = pd.concat([fail_counts, success_counts], axis=1).fillna(0).reset_index()
-
         Heatmap['lat'], Heatmap['lon'] = zip(*Heatmap['geo_location'].map(map_lat_lon))
-
         Heatmap = Heatmap.dropna(subset=['lat', 'lon'])
 
         max_marker_size = 40
@@ -187,111 +183,45 @@ def update_user_behavior_graph(user_login_location):
         Heatmap['success_size'] = Heatmap['success_count'] / Heatmap['success_count'].max() * max_marker_size
 
         fig = go.Figure()
-
         for idx, row in Heatmap.iterrows():
-            success_bigger = row['success_count'] >= row['fail_count']
-
             if row['fail_count'] <= row['success_count']:
                 fig.add_trace(go.Scattergeo(
-                    lon=[row['lon']],
-                    lat=[row['lat']],
-                    mode='markers',
-                    marker=dict(
-                        size=row['fail_size'],
-                        color='red',
-                        opacity=0.3,
-                        symbol='diamond',
-                        line=dict(width=1, color='white')
-                    ),
-                    name='Failed Logins',
-                    showlegend=idx == 0,
-                    hoverinfo='skip'
+                    lon=[row['lon']], lat=[row['lat']], mode='markers',
+                    marker=dict(size=row['fail_size'], color='red', opacity=0.3, symbol='diamond', line=dict(width=1, color='white')),
+                    name='Failed Logins', showlegend=idx == 0, hoverinfo='skip'
                 ))
                 if row['success_count'] > 0:
                     fig.add_trace(go.Scattergeo(
-                        lon=[row['lon']],
-                        lat=[row['lat']],
-                        mode='markers',
-                        marker=dict(
-                            size=row['success_size'],
-                            color='blue',
-                            opacity=0.7,
-                            symbol='circle',
-                            line=dict(width=1, color='white')
-                        ),
-                        name='Successful Logins',
-                        showlegend=idx == 0,
-                        hovertemplate=(
-                            f"<b>{row['geo_location']}</b><br>"
-                            f"Successful Logins: {int(row['success_count'])}<br>"
-                            f"Failed Logins: {int(row['fail_count'])}<extra></extra>"
-                        )
+                        lon=[row['lon']], lat=[row['lat']], mode='markers',
+                        marker=dict(size=row['success_size'], color='blue', opacity=0.7, symbol='circle', line=dict(width=1, color='white')),
+                        name='Successful Logins', showlegend=idx == 0,
+                        hovertemplate=(f"<b>{row['geo_location']}</b><br>Successful Logins: {int(row['success_count'])}<br>Failed Logins: {int(row['fail_count'])}<extra></extra>")
                     ))
             else:
                 fig.add_trace(go.Scattergeo(
-                    lon=[row['lon']],
-                    lat=[row['lat']],
-                    mode='markers',
-                    marker=dict(
-                        size=row['success_size'],
-                        color='blue',
-                        opacity=0.3,
-                        symbol='circle',
-                        line=dict(width=1, color='white')
-                    ),
-                    name='Successful Logins',
-                    showlegend=idx == 0,
-                    hoverinfo='skip'
+                    lon=[row['lon']], lat=[row['lat']], mode='markers',
+                    marker=dict(size=row['success_size'], color='blue', opacity=0.3, symbol='circle', line=dict(width=1, color='white')),
+                    name='Successful Logins', showlegend=idx == 0, hoverinfo='skip'
                 ))
                 if row['fail_count'] > 0:
                     fig.add_trace(go.Scattergeo(
-                        lon=[row['lon']],
-                        lat=[row['lat']],
-                        mode='markers',
-                        marker=dict(
-                            size=row['fail_size'],
-                            color='red',
-                            opacity=0.7,
-                            symbol='diamond',
-                            line=dict(width=1, color='white')
-                        ),
-                        name='Failed Logins',
-                        showlegend=idx == 0,
-                        hovertemplate=(
-                            f"<b>{row['geo_location']}</b><br>"
-                            f"Successful Logins: {int(row['success_count'])}<br>"
-                            f"Failed Logins: {int(row['fail_count'])}<extra></extra>"
-                        )
+                        lon=[row['lon']], lat=[row['lat']], mode='markers',
+                        marker=dict(size=row['fail_size'], color='red', opacity=0.7, symbol='diamond', line=dict(width=1, color='white')),
+                        name='Failed Logins', showlegend=idx == 0,
+                        hovertemplate=(f"<b>{row['geo_location']}</b><br>Successful Logins: {int(row['success_count'])}<br>Failed Logins: {int(row['fail_count'])}<extra></extra>")
                     ))
 
         fig.update_layout(
-            title={
-                'text': 'Login Attempts by Location',
-                'font': {'color': "#ffffff", 'size': 30}
-            },
-            geo=dict(
-                scope='world',
-                projection_type='natural earth',
-                showland=True,
-                landcolor='rgb(243, 243, 243)',
-                showcountries=True,
-                countrycolor='rgb(204, 204, 204)',
-            ),
+            title='Login Attempts by Location',
+            geo=dict(scope='world', projection_type='natural earth', showland=True, landcolor='rgb(243, 243, 243)', showcountries=True, countrycolor='rgb(204, 204, 204)'),
             paper_bgcolor='#252525',
             plot_bgcolor='#252525',
-            legend=dict(
-                title='Login Status',
-                x=0.8,
-                y=0.9,
-                bgcolor='rgba(255,255,255,0.7)'
-            )
+            font_color='white'
         )
-        return fig
+        return dcc.Graph(figure=fig)
 
     elif user_login_location == 'business_hours':
         df = csv_datasets["Dateset 2__User_Authentication_Logs.csv"].copy()
-
-        
         df['timestamp'] = pd.to_datetime(df['login_timestamp'], utc=True)
 
         def convert_to_local_time(row):
@@ -310,7 +240,6 @@ def update_user_behavior_graph(user_login_location):
             return 'Business Hours' if 9 <= hour < 17 else 'Non-Business Hours'
 
         df['business_hours'] = df['local_time'].apply(classify_business_hours)
-
         grouped = df.groupby(['geo_location', 'business_hours']).size().reset_index(name='count')
 
         fig = px.bar(
@@ -325,15 +254,15 @@ def update_user_behavior_graph(user_login_location):
         fig.update_layout(
             xaxis_title='City, Country',
             yaxis_title='Number of Logins',
-            plot_bgcolor='#252525',
             paper_bgcolor='#252525',
-            font_color='white'
+            plot_bgcolor='#252525',
+            font_color='white',
+            legend_title='Time Category'
         )
-        return fig
+        return dcc.Graph(figure=fig)
 
-    elif user_login_location == 'User Agent':
+    elif user_login_location == 'user_agent':
         df = csv_datasets["Dateset 2__User_Authentication_Logs.csv"].copy()
-
         browser_counts = df['user_agent'].value_counts().reset_index()
         browser_counts.columns = ['Browser', 'Count']
 
@@ -351,11 +280,85 @@ def update_user_behavior_graph(user_login_location):
             font_color='white',
         )
 
-        return fig
+        return dcc.Graph(figure=fig)
 
     else:
-        return go.Figure()
+        return html.P("Invalid subtab selection.")
 
+@app.callback(
+    Output('Malware Content', 'children'),
+    Input('Malware Sub Function', 'value')
+)
+def render_malware_subtab(subtab):
+    df = csv_datasets["Dataset 3__Malware_Threat_Alerts.csv"]
+
+    if subtab == 'threats':
+        malware_counts = df['threat_type'].value_counts().reset_index()
+        malware_counts.columns = ['Malware Type', 'Count']
+
+        fig = px.pie(
+            malware_counts,
+            names='Malware Type',
+            values='Count',
+            title='Malware Distribution by Type',
+            color_discrete_sequence=px.colors.qualitative.Bold
+        )
+
+        fig.update_layout(
+            paper_bgcolor='#252525',
+            plot_bgcolor='#252525',
+            font_color='white',
+            legend_title_text='Type'
+        )
+
+        return dcc.Graph(figure=fig)
+
+    elif subtab == 'remediation':
+        status_counts = df['remediation_status'].value_counts().reset_index()
+        status_counts.columns = ['Remediation Status', 'Count']
+
+        pending = df[df['remediation_status'] == 'Pending']
+        pending_counts = pending.threat_type.value_counts().nlargest(5).reset_index()
+        pending_counts.columns = ['Threat Type', 'Count']
+
+        escalated = df[df['remediation_status'] == 'Escalated']
+        escalated_counts = escalated.threat_type.value_counts().nlargest(5).reset_index()
+        escalated_counts.columns = ['Threat Type', 'Count']
+
+        pie_fig = px.pie(
+            status_counts,
+            names='Remediation Status',
+            values='Count',
+            title='Malware Remediation Status Distribution',
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+
+        pending_bar_fig = px.bar(
+            pending_counts,
+            x='Threat Type',
+            y='Count',
+            title='Top 5 Pending Threat Types',
+            color='Threat Type'
+        )
+
+        escalated_bar_fig = px.bar(
+            escalated_counts,
+            x='Threat Type',
+            y='Count',
+            title='Top 5 Escalated Threat Types',
+            color='Threat Type'
+        )
+
+        return html.Div([
+            dcc.Graph(figure=pie_fig),
+            html.Br(),
+            dcc.Graph(figure=pending_bar_fig),
+            html.Br(),
+            dcc.Graph(figure=escalated_bar_fig)
+        ])
+
+    else:
+        return html.P("No data available for this subtab.")
 
 if __name__ == '__main__':
     app.run(debug=True)
