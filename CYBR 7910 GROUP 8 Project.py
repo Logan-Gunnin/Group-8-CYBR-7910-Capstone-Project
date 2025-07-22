@@ -20,7 +20,6 @@ location_cache = {
     "London, UK": (51.5074, -0.1278)
 }
 
-
 APP_LOCATION = os.path.dirname(os.path.abspath(__file__))
 LOGS_LOCATION = APP_LOCATION
 
@@ -72,7 +71,7 @@ tabs = dcc.Tabs(
     }
 )
 city_times = {
-     city: tz for city, tz in {
+    city: tz for city, tz in {
         "Toronto, Canada": 'America/Toronto',
         "Cape Town, South Africa": 'Africa/Johannesburg',
         "San Francisco, USA": 'America/Los_Angeles',
@@ -108,17 +107,18 @@ app.layout = html.Div([
         'padding': '0',
     }),
 
-    tabs, 
+    tabs,
 
     html.Div(id='tab display', style={'color': 'white', 'padding': '45px'})
 ],
-style={
-    'backgroundColor': "#252525",
-    'minHeight': '100vh',
-    'margin': '0',
-    'padding': '0',
-    'fontFamily': 'Arial, sans-serif'
-})
+    style={
+        'backgroundColor': "#252525",
+        'minHeight': '100vh',
+        'margin': '0',
+        'padding': '0',
+        'fontFamily': 'Arial, sans-serif'
+    })
+
 
 @app.callback(
     Output('tab display', 'children'),
@@ -130,8 +130,8 @@ def render_tab_content(tab):
             html.H3('User Behavior & Access Monitoring'),
 
             dcc.Tabs(
-                id='user-subtab', 
-                value='heatmap', 
+                id='user-subtab',
+                value='heatmap',
                 children=[
                     dcc.Tab(label='Failed Login Heatmap', value='heatmap'),
                     dcc.Tab(label='Business Hours vs Non-Business Hours', value='business_hours'),
@@ -146,22 +146,31 @@ def render_tab_content(tab):
     elif tab == 'Malware and Threat Data':
         return html.Div([
             html.H3('Threat Detection & Malware Insights'),
-            
+
             dcc.Tabs(id='Malware Sub Function', value='threats', children=[
-            dcc.Tab(label='Threat Types', value='threats'),
-            dcc.Tab(label='Remediation Status', value='remediation')
-        ], style={'backgroundColor': '#252525', 'color': 'grey'}),
+                dcc.Tab(label='Threat Types', value='threats'),
+                dcc.Tab(label='Remediation Status', value='remediation')
+            ], style={'backgroundColor': '#252525', 'color': 'grey'}),
 
-        html.Div(id='Malware Content')
-
+            html.Div(id='Malware Content')
 
         ])
 
-    else:
+    elif tab == 'Network and Response Data':
         return html.Div([
             html.H3('Network and Incident Response'),
-            html.P("this is for the last section need to be done next week")
+
+            dcc.Tabs(id='network-subtab', value='protocol_traffic', children=[
+                dcc.Tab(label='Protocol Traffic vs Suspicious Activity', value='protocol_traffic'),
+                dcc.Tab(label='Inbound/Outbound Byte Averages', value='byte_avg'),
+                dcc.Tab(label='Total vs Suspicious Byte Volume', value='byte_comparison'),
+                dcc.Tab(label='Top Incident Categories', value='category'),
+                dcc.Tab(label='Incident Response Time Analysis', value='response_time')
+            ], style={'backgroundColor': '#252525', 'color': 'grey'}),
+
+            html.Div(id='network-subtab-content')
         ])
+
 
 @app.callback(
     Output('user-subtab-content', 'children'),
@@ -192,33 +201,40 @@ def update_user_behavior_graph(user_login_location):
             if row['fail_count'] <= row['success_count']:
                 fig.add_trace(go.Scattergeo(
                     lon=[row['lon']], lat=[row['lat']], mode='markers',
-                    marker=dict(size=row['fail_size'], color='red', opacity=0.3, symbol='diamond', line=dict(width=1, color='white')),
+                    marker=dict(size=row['fail_size'], color='red', opacity=0.3, symbol='diamond',
+                                line=dict(width=1, color='white')),
                     name='Failed Logins', showlegend=idx == 0, hoverinfo='skip'
                 ))
                 if row['success_count'] > 0:
                     fig.add_trace(go.Scattergeo(
                         lon=[row['lon']], lat=[row['lat']], mode='markers',
-                        marker=dict(size=row['success_size'], color='blue', opacity=0.7, symbol='circle', line=dict(width=1, color='white')),
+                        marker=dict(size=row['success_size'], color='blue', opacity=0.7, symbol='circle',
+                                    line=dict(width=1, color='white')),
                         name='Successful Logins', showlegend=idx == 0,
-                        hovertemplate=(f"<b>{row['geo_location']}</b><br>Successful Logins: {int(row['success_count'])}<br>Failed Logins: {int(row['fail_count'])}<extra></extra>")
+                        hovertemplate=(
+                            f"<b>{row['geo_location']}</b><br>Successful Logins: {int(row['success_count'])}<br>Failed Logins: {int(row['fail_count'])}<extra></extra>")
                     ))
             else:
                 fig.add_trace(go.Scattergeo(
                     lon=[row['lon']], lat=[row['lat']], mode='markers',
-                    marker=dict(size=row['success_size'], color='blue', opacity=0.3, symbol='circle', line=dict(width=1, color='white')),
+                    marker=dict(size=row['success_size'], color='blue', opacity=0.3, symbol='circle',
+                                line=dict(width=1, color='white')),
                     name='Successful Logins', showlegend=idx == 0, hoverinfo='skip'
                 ))
                 if row['fail_count'] > 0:
                     fig.add_trace(go.Scattergeo(
                         lon=[row['lon']], lat=[row['lat']], mode='markers',
-                        marker=dict(size=row['fail_size'], color='red', opacity=0.7, symbol='diamond', line=dict(width=1, color='white')),
+                        marker=dict(size=row['fail_size'], color='red', opacity=0.7, symbol='diamond',
+                                    line=dict(width=1, color='white')),
                         name='Failed Logins', showlegend=idx == 0,
-                        hovertemplate=(f"<b>{row['geo_location']}</b><br>Successful Logins: {int(row['success_count'])}<br>Failed Logins: {int(row['fail_count'])}<extra></extra>")
+                        hovertemplate=(
+                            f"<b>{row['geo_location']}</b><br>Successful Logins: {int(row['success_count'])}<br>Failed Logins: {int(row['fail_count'])}<extra></extra>")
                     ))
 
         fig.update_layout(
             title='Login Attempts by Location',
-            geo=dict(scope='world', projection_type='natural earth', showland=True, landcolor='rgb(243, 243, 243)', showcountries=True, countrycolor='rgb(204, 204, 204)'),
+            geo=dict(scope='world', projection_type='natural earth', showland=True, landcolor='rgb(243, 243, 243)',
+                     showcountries=True, countrycolor='rgb(204, 204, 204)'),
             paper_bgcolor='#252525',
             plot_bgcolor='#252525',
             font_color='white'
@@ -289,6 +305,7 @@ def update_user_behavior_graph(user_login_location):
 
     else:
         return html.P("Invalid subtab selection.")
+
 
 @app.callback(
     Output('Malware Content', 'children'),
@@ -364,6 +381,99 @@ def render_malware_subtab(subtab):
 
     else:
         return html.P("No data available for this subtab.")
+
+
+@app.callback(
+    Output('network-subtab-content', 'children'),
+    Input('network-subtab', 'value')
+)
+def render_network_subtab(subtab): 
+    try:
+        df_traffic = csv_datasets["Dataset 4__Network_Traffic_Summary.csv"].copy()
+        df_incident = csv_datasets["Dataset 5__Security_Incident_Reports.csv"].copy()
+    except KeyError as e:
+        return html.P(f"Missing dataset: {e}", style={"color": "red"})
+
+    def _layout(fig, title):
+        fig.update_layout(
+            title=title,
+            paper_bgcolor="#252525",
+            plot_bgcolor="#252525",
+            font_color="white",
+            legend_title=None,
+            margin=dict(t=60, l=40, r=20, b=40)
+        )
+        return dcc.Graph(figure=fig)
+
+    if subtab == "protocol_traffic":
+        if df_traffic.empty:
+            return html.P("No traffic data available.", style={"color": "white"})
+        g = df_traffic.groupby(["protocol", "suspicious_activity"]).size().reset_index(name="Events")
+        fig = px.bar(g, x="protocol", y="Events", color="suspicious_activity", barmode="group")
+        return _layout(fig, "Protocol Traffic vs Suspicious Activity")
+
+    elif subtab == "byte_avg":
+        if df_traffic.empty:
+            return html.P("No traffic data available.", style={"color": "white"})
+        g = (
+            df_traffic
+            .groupby("suspicious_activity")[["inbound_bytes", "outbound_bytes"]]
+            .mean()
+            .reset_index()
+            .melt(id_vars="suspicious_activity", var_name="Direction", value_name="Average Bytes")
+        )
+        fig = px.bar(g, x="suspicious_activity", y="Average Bytes", color="Direction", barmode="group")
+        return _layout(fig, "Average Inbound / Outbound Bytes")
+
+    elif subtab == "byte_comparison":
+        if df_traffic.empty:
+            return html.P("No traffic data available.", style={"color": "white"})
+        df_traffic["total_bytes"] = df_traffic["inbound_bytes"] + df_traffic["outbound_bytes"]
+        g = (
+            df_traffic
+            .groupby("protocol")[["inbound_bytes", "outbound_bytes", "total_bytes"]]
+            .sum()
+            .reset_index()
+            .melt(id_vars="protocol", var_name="Byte Type", value_name="Bytes")
+        )
+        fig = px.bar(g, x="protocol", y="Bytes", color="Byte Type", barmode="group")
+        return _layout(fig, "Inbound vs Outbound vs Total Bytes by Protocol")
+
+    elif subtab == "category":
+        if df_incident.empty:
+            return html.P("No incident data available.", style={"color": "white"})
+        g = df_incident.groupby("category").size().reset_index(name="Count")
+        g = g.sort_values("Count", ascending=False).head(10)
+        fig = px.pie(
+            g,
+            names="category",
+            values="Count",
+            title="Top 10 Incident Categories",
+            hole=0.3
+        )
+        fig.update_traces(textinfo='percent+label')
+        return _layout(fig, "Top Incident Categories")
+
+    elif subtab == "response_time":
+        if df_incident.empty:
+            return html.P("No incident data available.", style={"color": "white"})
+        df_incident = df_incident.dropna(subset=["response_time_minutes"])
+        df_incident["response_hrs"] = df_incident["response_time_minutes"] / 60
+
+        if df_incident.empty:
+            return html.P("No valid response time data found.", style={"color": "white"})
+
+        avg_rt = df_incident["response_hrs"].mean()
+        fig = px.histogram(df_incident, x="response_hrs", nbins=30, labels={"response_hrs": "Hours"})
+        fig.add_vline(
+            x=avg_rt,
+            line_dash="dash",
+            annotation_text=f"Mean = {avg_rt:.1f} h",
+            annotation_position="top right"
+        )
+        return _layout(fig, "Incident Response Time Distribution")
+
+    return html.P("No data available for this sub-tab.", style={"color": "white"})
 
 if __name__ == '__main__':
     app.run(debug=True)
