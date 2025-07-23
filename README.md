@@ -2,7 +2,10 @@
 
 Data science project for EverythingOrganic
 
-To use App must have excel files in the same folder as the .py code then run the code. 
+To use App must have excel files in the same folder as the .py code then run the code.
+
+You must have all the libaries installed that are imported at the top of the code.
+
 
 It should have access to each of the 5 files. It might be slow on startup as it generates the map and graphs for the data. 
 
